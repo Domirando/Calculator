@@ -2,39 +2,188 @@ package com.example.calculator
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
 import android.view.View
-import android.widget.TextView
+import android.widget.Button
 import kotlinx.android.synthetic.main.activity_main.*
 
-class MainActivity : AppCompatActivity(), View.OnClickListener {
-    var problem = ""
-    override fun onCreate(savedInstanceState: Bundle?) {
+class MainActivity : AppCompatActivity()
+{
+    private var canAddOperation = false
+    private var canAddDecimal = true
+
+    override fun onCreate(savedInstanceState: Bundle?)
+    {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
-        zero.setOnClickListener(this)
-        one.setOnClickListener(this)
-        two.setOnClickListener(this)
-        three.setOnClickListener(this)
-        four.setOnClickListener(this)
-        five.setOnClickListener(this)
-        six.setOnClickListener(this)
-        seven.setOnClickListener(this)
-        eight.setOnClickListener(this)
-        nine.setOnClickListener(this)
-        clear.setOnClickListener(this)
-        equal.setOnClickListener(this)
-        plus.setOnClickListener(this)
-        minus.setOnClickListener(this)
-        mult.setOnClickListener(this)
-        div.setOnClickListener(this)
-        backspace.setOnClickListener(this)
-        dot.setOnClickListener(this)
-        pos_neg.setOnClickListener(this)
-        percent.setOnClickListener(this)
     }
 
-    override fun onClick(v: View?) {
+    fun numberAction(view: View)
+    {
+        if(view is Button)
+        {
+            if(view.text == ".")
+            {
+                if(canAddDecimal)
+                    operand.append(view.text)
+
+                canAddDecimal = false
+            }
+            else
+                operand.append(view.text)
+
+            canAddOperation = true
+        }
     }
+
+    fun operationAction(view: View)
+    {
+        if(view is Button && canAddOperation)
+        {
+            operand.append(view.text)
+            canAddOperation = false
+            canAddDecimal = true
+        }
+    }
+
+    fun allClearAction(view: View)
+    {
+        operand.text = ""
+        result.text = ""
+    }
+
+    fun backSpaceAction(view: View)
+    {
+        val length = operand.length()
+        if(length > 0)
+            operand.text = operand.text.subSequence(0, length - 1)
+    }
+
+    fun equalsAction(view: View)
+    {
+        result.text = calculateResults()
+    }
+
+    private fun calculateResults(): String
+    {
+        val digitsOperators = digitsOperators()
+        if(digitsOperators.isEmpty()) return ""
+
+        val timesDivision = timesDivisionCalculate(digitsOperators)
+        if(timesDivision.isEmpty()) return ""
+
+        val result = addSubtractCalculate(timesDivision)
+        return result.toString()
+    }
+
+    private fun addSubtractCalculate(passedList: MutableList<Any>): Float
+    {
+        var result = passedList[0] as Float
+
+        for(i in passedList.indices)
+        {
+            if(passedList[i] is Char && i != passedList.lastIndex)
+            {
+                val operator = passedList[i]
+                val nextDigit = passedList[i + 1] as Float
+                if (operator == '+')
+                    result += nextDigit
+                if (operator == '–')
+                    result -= nextDigit
+                if (operator == '%')
+                    result /= 100
+            }
+        }
+
+        return result
+    }
+
+    private fun timesDivisionCalculate(passedList: MutableList<Any>): MutableList<Any>
+    {
+        var list = passedList
+        while (list.contains('x') || list.contains('/'))
+        {
+            list = calcTimesDiv(list)
+        }
+        return list
+    }
+
+    private fun calcTimesDiv(passedList: MutableList<Any>): MutableList<Any>
+    {
+        val newList = mutableListOf<Any>()
+        var restartIndex = passedList.size
+
+        for(i in passedList.indices)
+        {
+            if(passedList[i] is Char && i != passedList.lastIndex && i < restartIndex)
+            {
+                val operator = passedList[i]
+                val prevDigit = passedList[i - 1] as Float
+                val nextDigit = passedList[i + 1] as Float
+                when(operator)
+                {
+                    'x' ->
+                    {
+                        newList.add(prevDigit * nextDigit)
+                        restartIndex = i + 1
+                    }
+                    '/' ->
+                    {
+                        newList.add(prevDigit / nextDigit)
+                        restartIndex = i + 1
+                    }
+                    else ->
+                    {
+                        newList.add(prevDigit)
+                        newList.add(operator)
+                    }
+                }
+            }
+
+            if(i > restartIndex)
+                newList.add(passedList[i])
+        }
+
+        return newList
+    }
+
+    private fun digitsOperators(): MutableList<Any>
+    {
+        val list = mutableListOf<Any>()
+        var currentDigit = ""
+        for(character in operand.text)
+        {
+            if(character.isDigit() || character == '.')
+                currentDigit += character
+            else
+            {
+                list.add(currentDigit.toFloat())
+                currentDigit = ""
+                list.add(character)
+            }
+        }
+
+        if(currentDigit != "")
+            list.add(currentDigit.toFloat())
+
+        return list
+    }
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
